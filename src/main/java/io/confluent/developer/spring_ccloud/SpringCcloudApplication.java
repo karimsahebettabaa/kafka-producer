@@ -3,6 +3,7 @@ package io.confluent.developer.spring_ccloud;
 import org.apache.logging.log4j.Marker;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import com.mongodb.client.model.Facet;
 
@@ -27,7 +28,6 @@ public class SpringCcloudApplication {
 
 @RequiredArgsConstructor
 @Component
-
 class Producer {
 	private final KafkaTemplate<Integer, String> template;
     Faker faker;
@@ -37,6 +37,14 @@ class Producer {
         faker = Faker.instance();
         final Flux<Long> interval = Flux.interval(Duration.ofMillis(1_000));
         final Flux<String> quotes = Flux.fromStream(Stream.generate(()-> faker.hobbit().quote()));
-        Flux.zip(interval, quotes).map(it -> template.send("topic_1", faker.random().nextInt(42), it.getT2())).blockLast();
+        Flux.zip(interval, quotes).map(it -> template.send("hobbit", faker.random().nextInt(42), it.getT2())).blockLast();
+    }
+}
+
+@Component
+class Consumer {
+    @KafkaListener(id = "lkc-o7nkmp", topics = "hobbit", groupId="spring-boot-kafka")
+    public void consume(String quotes) {
+        System.out.println("received= " + quotes);
     }
 }
